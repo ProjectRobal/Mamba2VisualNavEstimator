@@ -1,0 +1,4 @@
+- Fast KAN is faster than Efficient KAN so lets stick with it.
+- Convolution KAN is a lot slower than standard convolution
+- So we need to think about diffrent approach ( we can replace activation function with KAN or just replace convolution with KAN )
+- Lets add 
