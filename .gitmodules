@@ -1,6 +1,6 @@
-[submodule "efficient-kan"]
-	path = efficient-kan
+[submodule "./efficient-kan"]
+	path = ./efficient-kan
 	url = git@github.com:Blealtan/efficient-kan.git
-[submodule "fast-kan"]
-	path = fast-kan
+[submodule "./fast-kan"]
+	path = ./fast-kan
 	url = git@github.com:Blealtan/efficient-kan.git
