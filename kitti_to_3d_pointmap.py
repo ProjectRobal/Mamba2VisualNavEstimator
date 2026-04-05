@@ -75,16 +75,40 @@ def quaternion_to_matrix(q):
         [2*(xz - wy),         2*(yz + wx), 1 - 2*(x2 + y2)]
     ])
 
+def normalize_cloud_map(pcd):
+    
+    pcd.translate(-pcd.get_center())
+    
+    diameter = np.linalg.norm(np.asarray(pcd.get_max_bound()) - np.asarray(pcd.get_min_bound()))
+    pcd.scale(1 / diameter, center=pcd.get_center())
+    
+    return pcd
+
 def main():    
-    # timestamp 
+    
+    # pcd = o3d.geometry.PointCloud()
+    # pcd = o3d.io.read_point_cloud("point_cloud_campus_2.ply")
+    
+    # pcd = normalize_cloud_map(pcd)
+    
+    # o3d.io.write_point_cloud("point_cloud_campus_3.ply",pcd)
+    
+    # exit()
+    
+    # # timestamp 
     pcd = o3d.geometry.PointCloud()
-    pcd = o3d.io.read_point_cloud("point_cloud_2.ply")
+    pcd = o3d.io.read_point_cloud("dataset_campus_2/point_cloud_4.ply")
     
-    pcd.points = pcd.points[0::8]
+    pcd = pcd.voxel_down_sample(0.009)
     
+    # pcd.points = pcd.points[0::2]
+                
     print(f"Point count: {len(pcd.points)}")
     
-    o3d.io.write_point_cloud("point_cloud_3.ply",pcd)
+    print(np.max(pcd.points))
+    print(np.min(pcd.points))
+    
+    o3d.io.write_point_cloud("point_cloud_campus_3.ply",pcd)
     
     o3d.visualization.draw_geometries([pcd])
     exit()
@@ -145,10 +169,10 @@ def main():
     BORDER_SIZE = 100 #2**32-1
     
     pcd = o3d.geometry.PointCloud()
-    pcd = o3d.io.load_point_cloud("point_cloud_1")
+    # pcd = o3d.io.load_point_cloud("point_cloud_1")
     
-    o3d.draw_geometries([pcd])
-    exit()
+    # o3d.draw_geometries([pcd])
+    # exit()
     # pcd.points = o3d.utility.Vector3dVector(np.array(border_points))
             
     limits = o3d.geometry.AxisAlignedBoundingBox()
@@ -233,7 +257,7 @@ def main():
         
     vis.add_geometry(pcd)
     
-    o3d.io.write_point_cloud("point_cloud_1.ply", pcd)
+    o3d.io.write_point_cloud("point_cloud_campus_1.ply", pcd)
         
     while True:
         vis.poll_events()

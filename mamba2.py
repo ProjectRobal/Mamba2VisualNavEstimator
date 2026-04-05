@@ -22,7 +22,8 @@ from mamba_ssm.ops.triton.ssd_combined import mamba_split_conv1d_scan_combined
 
 from efficient_kan import KANLinear
 from fastkan import FastKANLayer
-
+from torchkan.KALnet import KAL_Net as KAN
+from LegendreKANLayer import LegendreKANLayer
 
 
 class Mamba2Simple(nn.Module):
@@ -46,6 +47,9 @@ class Mamba2Simple(nn.Module):
         conv_bias=True,
         # Fused kernel and sharding options
         chunk_size=256,
+        num_grids=8,
+        grid_min=-2.0,
+        grid_max=2.0,
         use_mem_eff_path=True,
         layer_idx=None,  # Absorb kwarg for general module
         device=None,
@@ -71,8 +75,12 @@ class Mamba2Simple(nn.Module):
 
         # Order: [z, x, B, C, dt]
         d_in_proj = 2 * self.d_inner + 2 * self.ngroups * self.d_state + self.nheads
-        # self.in_proj = nn.Linear(self.d_model, d_in_proj, bias=bias, **factory_kwargs)
-        self.in_proj = FastKANLayer(self.d_model,d_in_proj).to(device=device)
+        # self.in_proj = nn.Linear(self.d_model, d_in_proj, bias=bias)
+        self.in_proj = FastKANLayer(self.d_model,d_in_proj,num_grids=num_grids,
+              grid_min=grid_min,grid_max=grid_max).to(device=device)
+        # self.d_in_proj = d_in_proj
+
+        # self.in_proj = LegendreKANLayer(self.d_model,d_in_proj,num_grids)
 
         conv_dim = self.d_inner + 2 * self.ngroups * self.d_state
                 
@@ -86,7 +94,9 @@ class Mamba2Simple(nn.Module):
             padding=d_conv - 1,
         ).to(device=device)
                 
-        self.conv1d_kan_activation = FastKANLayer(conv_dim,conv_dim)
+        self.conv1d_kan_activation = FastKANLayer(conv_dim,conv_dim,num_grids=num_grids,
+        grid_min=grid_min,grid_max=grid_max)
+        # self.conv1d_kan_activation = LegendreKANLayer(conv_dim,conv_dim,num_grids)
         # if self.conv_init is not None:
         #     nn.init.uniform_(self.conv1d.weight, -self.conv_init, self.conv_init)
         # self.conv1d.weight._no_weight_decay = True
@@ -124,8 +134,9 @@ class Mamba2Simple(nn.Module):
         assert RMSNormGated is not None
         self.norm = RMSNormGated(self.d_inner, eps=1e-5, norm_before_gate=False)
 
-        # self.out_proj = nn.Linear(self.d_inner, self.d_model, bias=bias, **factory_kwargs)
-        self.out_proj = FastKANLayer(self.d_inner, self.d_model)
+        # self.out_proj = nn.Linear(self.d_inner, self.d_model, bias=bias)
+        self.out_proj = FastKANLayer(self.d_inner, self.d_model,num_grids=num_grids,grid_min=grid_min,grid_max=grid_max)
+        # self.out_proj = LegendreKANLayer(self.d_inner, self.d_model,num_grids)
 
     def forward(self, u, seq_idx=None):
         """
@@ -174,7 +185,7 @@ class Mamba2Simple(nn.Module):
                 xBC = self.conv1d(xBC.transpose(1, 2)).transpose(1, 2)
                 
                 orig_shape_xbc = xBC.shape
-                                                                                
+                                                                                                
                 xBC = self.conv1d_kan_activation(xBC)
                 
                 xBC = xBC.reshape(orig_shape_xbc)
